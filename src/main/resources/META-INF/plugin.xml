@@ -47,6 +47,9 @@
             id="gordeev.dev.aicodereview.settings.AppSettingsConfigurable"
             displayName="AI Code Review Settings"/>
     <applicationService serviceImplementation="gordeev.dev.aicodereview.settings.AppSettingsState"/>
+
+    <notificationGroup id="AI Code Review Errors" displayType="BALLOON" />
+    <notificationGroup id="AI Code Review" displayType="BALLOON" />
 </extensions>
 
     <actions>

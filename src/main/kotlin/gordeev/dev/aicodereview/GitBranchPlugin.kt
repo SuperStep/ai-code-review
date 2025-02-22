@@ -1,131 +1,109 @@
 package gordeev.dev.aicodereview
 
-import com.google.gson.Gson
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.project.Project
-import com.intellij.openapi.ui.Messages
+import com.intellij.openapi.ui.DialogWrapper
+import com.intellij.openapi.vcs.VcsException
 import git4idea.GitUtil
-import git4idea.branch.GitBranchUtil
+import git4idea.commands.Git
+import git4idea.commands.GitCommand
+import git4idea.commands.GitLineHandler
 import git4idea.repo.GitRepository
-import gordeev.dev.aicodereview.settings.AppSettingsState
-import java.net.URI
-import java.net.http.HttpClient
-import java.net.http.HttpRequest
-import java.net.http.HttpResponse
+import java.awt.BorderLayout
+import javax.swing.*
+
 
 class GitBranchPlugin : AnAction() {
+
     override fun actionPerformed(e: AnActionEvent) {
         val project = e.project ?: return
-        val repository = getRepository(project) ?: return
-        val settings = AppSettingsState.instance
+        val repository = GitUtil.getRepositoryManager(project).repositories.firstOrNull() ?: return
 
-        if (settings.modelProvider != AppSettingsState.ModelProvider.OLLAMA) {
-            Messages.showMessageDialog(
-                project,
-                "Currently only Ollama model provider is supported for code review.",
-                "Model Provider Not Supported",
-                Messages.getInformationIcon()
-            )
-            return
-        }
-        val currentBranch = repository.currentBranch ?: return
-        val selectedBranch = GitBranchUtil.chooseBranch(project, repository, "Select Branch to Compare") ?: return
+        val branchDialog = BranchSelectionDialog(project, repository)
+        if (branchDialog.showAndGet()) {
+            val sourceBranch = branchDialog.sourceBranch
+            val targetBranch = branchDialog.targetBranch
 
-        val diff = getDiff(repository, currentBranch.name, selectedBranch.name)
-
-        if (diff.isNullOrBlank()) {
-            Messages.showMessageDialog(project, "No changes found.", "Empty Diff", Messages.getInformationIcon())
-            return
-        }
-
-        val prompt = "${settings.userMessage}\n\n\n$diff\n"
-        val requestBody = """{"prompt": "$prompt", "model": "${settings.ollamaModel}", "stream": false}"""
-        val ollamaResponse = sendToOllama(settings.ollamaUrl, requestBody)
-
-        Messages.showMessageDialog(project, ollamaResponse, "AI Code Review", Messages.getInformationIcon())
-    }
-
-    private fun getRepository(project: Project): GitRepository? {
-        val repositories = GitUtil.getRepositories(project)
-        if (repositories.isEmpty()) {
-            Messages.showMessageDialog(
-                project,
-                "No Git repositories found in this project.",
-                "No Repositories Found",
-                Messages.getErrorIcon()
-            )
-            return null
-        }
-        // For simplicity, we'll just use the first repository.  In a real plugin,
-        // you might want to let the user choose if there are multiple.
-        return repositories.first()
-    }
-
-    private fun getDiff(repository: GitRepository, baseBranch: String, targetBranch: String): String? {
-        val changes = GitUtil.getDiff(repository, baseBranch, targetBranch, true) ?: return null
-        return changes.joinToString("\n") { change -> formatChange(change) }
-    }
-
-    private fun formatChange(change: Change): String {
-        return when (change.type) {
-            Change.Type.MODIFIED -> {
-                "--- a/${change.beforeRevision?.file?.path}\n" +
-                        "+++ b/${change.afterRevision?.file?.path}\n" +
-                        change.afterRevision?.content.let {
-                            git4idea.util.GitChangeDiffOperations.getDiff(
-                                change.beforeRevision?.content,
-                                it
-                            )
-                        }
+            if (sourceBranch != null && targetBranch != null) {
+                val diff = getDiff(project, repository, sourceBranch, targetBranch)
+                if (diff != null) {
+                    // Process the diff string (e.g., send it to your AI model)
+                    println("Diff:\n$diff") // Replace with your processing logic
+                } else {
+                    // Handle the case where diff couldn't be retrieved
+                    println("Failed to get diff") // Replace with proper error handling (notification)
+                }
             }
 
-            Change.Type.NEW -> {
-                "--- /dev/null\n" +
-                        "+++ b/${change.afterRevision?.file?.path}\n" +
-                        change.afterRevision?.content
-            }
+            // Send the diff to your AI model for review
 
-            Change.Type.DELETED -> {
-                "--- a/${change.beforeRevision?.file?.path}\n" +
-                        "+++ /dev/null\n" +
-                        change.beforeRevision?.content
-            }
 
-            Change.Type.MOVED -> {
-                "--- a/${change.beforeRevision?.file?.path}\n" +
-                        "+++ b/${change.afterRevision?.file?.path}\n" +
-                        change.afterRevision?.content.let {
-                            git4idea.util.GitChangeDiffOperations.getDiff(
-                                change.beforeRevision?.content,
-                                it
-                            )
-                        }
-            }
         }
     }
 
-    private fun sendToOllama(ollamaUrl: String, requestBody: String): String {
-        val client = HttpClient.newHttpClient()
-        val request = HttpRequest.newBuilder()
-            .uri(URI.create(ollamaUrl))
-            .header("Content-Type", "application/json")
-            .POST(HttpRequest.BodyPublishers.ofString(requestBody))
-            .build()
+    private fun getDiff(project: Project, repository: GitRepository, sourceBranch: String, targetBranch: String): String? {
+        val handler = GitLineHandler(project, repository.root, GitCommand.DIFF)
+        handler.addParameters(targetBranch, sourceBranch) // target..source  (like in git diff command)
+        handler.setSilent(true) // Don't show the command in the console
+        handler.endOptions()
 
         return try {
-            val response = client.send(request, HttpResponse.BodyHandlers.ofString())
-            if (response.statusCode() == 200) {
-                val gson = Gson()
-                val ollamaResponse = gson.fromJson(response.body(), OllamaResponse::class.java)
-                ollamaResponse.response
-            } else {
-                "Error: ${response.statusCode()} - ${response.body()}"
-            }
-        } catch (e: Exception) {
-            "Exception: ${e.message}"
+            Git.getInstance().runCommand(handler).getOutputOrThrow()
+        } catch (e: VcsException) {
+            e.printStackTrace() // Log the exception
+            null // Return null to indicate failure
         }
     }
 
-    data class OllamaResponse(val response: String)
+
+    class BranchSelectionDialog(private val project: Project, private val repository: GitRepository) : DialogWrapper(project) {
+        private val sourceBranchComboBox = JComboBox<String>()
+        private val targetBranchComboBox = JComboBox<String>()
+        var sourceBranch: String? = null
+            private set
+        var targetBranch: String? = null
+            private set
+
+        init {
+            title = "Select Branches for AI Code Review"
+            init() // Important: Initialize the dialog
+            populateBranchComboBoxes()
+        }
+
+        private fun populateBranchComboBoxes() {
+            val branches = repository.branches.localBranches.map { it.name }
+            sourceBranchComboBox.model = DefaultComboBoxModel(branches.toTypedArray())
+            targetBranchComboBox.model = DefaultComboBoxModel(branches.toTypedArray())
+
+            // Set default selections (optional, but good for UX)
+            val currentBranch = repository.currentBranch?.name
+            if (currentBranch != null) {
+                targetBranchComboBox.selectedItem = currentBranch
+            }
+        }
+
+        override fun createCenterPanel(): JComponent {
+            val panel = JPanel(BorderLayout())
+
+            val sourcePanel = JPanel()
+            sourcePanel.add(JLabel("Source Branch:"))
+            sourcePanel.add(sourceBranchComboBox)
+
+            val targetPanel = JPanel()
+            targetPanel.add(JLabel("Target Branch:"))
+            targetPanel.add(targetBranchComboBox)
+
+            panel.add(sourcePanel, BorderLayout.NORTH)
+            panel.add(targetPanel, BorderLayout.SOUTH)
+
+            return panel
+        }
+
+        override fun doOKAction() {
+            sourceBranch = sourceBranchComboBox.selectedItem as? String
+            targetBranch = targetBranchComboBox.selectedItem as? String
+            super.doOKAction()
+        }
+    }
 }

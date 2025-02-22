@@ -16,13 +16,12 @@ class AppSettingsState : PersistentStateComponent<AppSettingsState> {
         OLLAMA,
         GEMINI
     }
-
     var modelProvider: ModelProvider = ModelProvider.OLLAMA // Default to Ollama
     var ollamaUrl: String = "http://localhost:11434/api/generate"
     var ollamaModel: String = ""
     var geminiToken: String = ""
-    var userMessage: String = "Please review the following code changes:" // Add user message
-
+    var includeRepositoryContext: Boolean = false // Add the new setting, default to false
+    var userMessage: String = ""
     override fun getState(): AppSettingsState {
         return this
     }

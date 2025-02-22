@@ -3,6 +3,7 @@ package gordeev.dev.aicodereview.settings
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import com.intellij.openapi.options.Configurable
+import com.intellij.ui.components.JBCheckBox
 import com.intellij.ui.components.JBLabel
 import com.intellij.ui.components.JBRadioButton
 import com.intellij.ui.components.JBTextArea
@@ -28,6 +29,7 @@ class AppSettingsConfigurable : Configurable {
     private lateinit var ollamaUrlLabel: JBLabel
     private lateinit var ollamaModelLabel: JBLabel
     private lateinit var geminiTokenLabel: JBLabel
+    private lateinit var includeRepositoryContextCheckbox: JBCheckBox
     private lateinit var userMessageTextArea: JBTextArea
     private var myMainPanel: JPanel? = null
 
@@ -44,6 +46,7 @@ class AppSettingsConfigurable : Configurable {
         ollamaUrlLabel = JBLabel("Ollama URL: ")
         ollamaModelLabel = JBLabel("Ollama Model: ")
         geminiTokenLabel = JBLabel("Gemini Token: ")
+        includeRepositoryContextCheckbox = JBCheckBox("Include repository context", settings.includeRepositoryContext)
         userMessageTextArea = JBTextArea(settings.userMessage, 5, 30)
 
         val buttonGroup = ButtonGroup()
@@ -63,6 +66,7 @@ class AppSettingsConfigurable : Configurable {
             .addLabeledComponent(ollamaModelLabel, ollamaModelComboBox, 1, false)
             .addComponent(fetchModelsButton)
             .addLabeledComponent(geminiTokenLabel, geminiTokenField, 1, false)
+            .addComponent(includeRepositoryContextCheckbox)
             .addLabeledComponent(JBLabel("User Message: "), userMessageTextArea, 1, false)
             .addComponentFillVertically(JPanel(), 0)
             .panel
@@ -80,6 +84,7 @@ class AppSettingsConfigurable : Configurable {
                 (ollamaModelComboBox.selectedItem as? String ?: "") != settings.ollamaModel ||
                 geminiTokenField.text != settings.geminiToken ||
                 getSelectedProvider() != settings.modelProvider ||
+                includeRepositoryContextCheckbox.isSelected != settings.includeRepositoryContext ||
                 userMessageTextArea.text != settings.userMessage
     }
 
@@ -88,6 +93,7 @@ class AppSettingsConfigurable : Configurable {
         settings.ollamaModel = ollamaModelComboBox.selectedItem as? String ?: ""
         settings.geminiToken = geminiTokenField.text
         settings.modelProvider = getSelectedProvider()
+        settings.includeRepositoryContext = includeRepositoryContextCheckbox.isSelected
         settings.userMessage = userMessageTextArea.text
     }
 
@@ -101,6 +107,7 @@ class AppSettingsConfigurable : Configurable {
             AppSettingsState.ModelProvider.OLLAMA -> ollamaRadioButton.isSelected = true
             AppSettingsState.ModelProvider.GEMINI -> geminiRadioButton.isSelected = true
         }
+        includeRepositoryContextCheckbox.isSelected = settings.includeRepositoryContext
         userMessageTextArea.text = settings.userMessage
         updateComponentsVisibility()
     }

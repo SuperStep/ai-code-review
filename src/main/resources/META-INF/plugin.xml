@@ -1,0 +1,60 @@
+<!-- Plugin Configuration File. Read more: https://plugins.jetbrains.com/docs/intellij/plugin-configuration-file.html -->
+<idea-plugin>
+    <!-- Unique identifier of the plugin. It should be FQN. It cannot be changed between the plugin versions. -->
+    <id>gordeev.dev.aicodereview</id>
+
+    <!-- Public plugin name should be written in Title Case.
+         Guidelines: https://plugins.jetbrains.com/docs/marketplace/plugin-overview-page.html#plugin-name -->
+    <name>Ai-code-review</name>
+
+    <!-- A displayed Vendor name or Organization ID displayed on the Plugins Page. -->
+    <vendor email="mail@gordeev.dev" url="https://gordeev.dev">Gordeev Egor</vendor>
+
+    <!-- Description of the plugin displayed on the Plugin Page and IDE Plugin Manager.
+         Simple HTML elements (text formatting, paragraphs, and lists) can be added inside of <![CDATA[ ]]> tag.
+         Guidelines: https://plugins.jetbrains.com/docs/marketplace/plugin-overview-page.html#plugin-description -->
+    <description><![CDATA[
+    <h2>AI Code Review Assistant powered by Local LLMs</h2>
+
+    <p>A powerful IntelliJ IDEA plugin that brings AI-powered code review capabilities directly to your IDE using local LLaMA models. Perfect for teams using Bitbucket!</p>
+
+    <h3>Key Features:</h3>
+    <ul>
+        <li>✨ <strong>Local First</strong> - All processing happens on your machine using LLaMA models</li>
+        <li>🔍 <strong>Smart PR Analysis</strong> - Intelligent code review suggestions for your Bitbucket pull requests</li>
+        <li>🚀 <strong>Privacy Focused</strong> - No code leaves your machine, ensuring complete security</li>
+        <li>⚡ <strong>Real-time Feedback</strong> - Get instant review comments while working in your IDE</li>
+    </ul>
+
+    <h3>How It Works:</h3>
+    <p>The plugin seamlessly integrates with your Bitbucket workflow, analyzing pull requests and providing smart suggestions for code improvements, best practices, and potential issues - all powered by local LLaMA models.</p>
+
+    <p>Start getting intelligent code reviews today without compromising on privacy or security!</p>
+]]></description>
+
+
+    <!-- Product and plugin compatibility requirements.
+         Read more: https://plugins.jetbrains.com/docs/intellij/plugin-compatibility.html -->
+    <depends>com.intellij.modules.platform</depends>
+    <depends>Git4Idea</depends>
+
+    <!-- Extension points defined by the plugin.
+         Read more: https://plugins.jetbrains.com/docs/intellij/plugin-extension-points.html -->
+<extensions defaultExtensionNs="com.intellij">
+    <applicationConfigurable
+            parentId="tools"
+            instance="gordeev.dev.aicodereview.settings.AppSettingsConfigurable"
+            id="gordeev.dev.aicodereview.settings.AppSettingsConfigurable"
+            displayName="AI Code Review Settings"/>
+    <applicationService serviceImplementation="gordeev.dev.aicodereview.settings.AppSettingsState"/>
+</extensions>
+
+    <actions>
+        <action id="GitBranchPlugin.SelectBranch"
+                class="gordeev.dev.aicodereview.GitBranchPlugin"
+                text="Perform AI Code Review"
+                description="Choose branches to review changes">
+            <add-to-group group-id="VcsGroups" anchor="last"/>
+        </action>
+    </actions>
+</idea-plugin>

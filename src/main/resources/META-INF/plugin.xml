@@ -53,8 +53,8 @@
 </extensions>
 
     <actions>
-        <action id="GitBranchPlugin.SelectBranch"
-                class="gordeev.dev.aicodereview.GitBranchPlugin"
+        <action id="AIReviewAction.Review"
+                class="gordeev.dev.aicodereview.AIReviewAction"
                 text="Perform AI Code Review"
                 description="Choose branches to review changes">
             <add-to-group group-id="VcsGroups" anchor="last"/>

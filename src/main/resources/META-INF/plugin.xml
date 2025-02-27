@@ -5,7 +5,7 @@
 
     <!-- Public plugin name should be written in Title Case.
          Guidelines: https://plugins.jetbrains.com/docs/marketplace/plugin-overview-page.html#plugin-name -->
-    <name>Ai-code-review</name>
+    <name>Ai Code Review</name>
 
     <!-- A displayed Vendor name or Organization ID displayed on the Plugins Page. -->
     <vendor email="mail@gordeev.dev" url="https://gordeev.dev">Gordeev Egor</vendor>
@@ -36,6 +36,7 @@
     <!-- Product and plugin compatibility requirements.
          Read more: https://plugins.jetbrains.com/docs/intellij/plugin-compatibility.html -->
     <depends>com.intellij.modules.platform</depends>
+    <depends>com.intellij.modules.vcs</depends>
     <depends>Git4Idea</depends>
 
     <!-- Extension points defined by the plugin.
@@ -51,13 +52,28 @@
     <notificationGroup id="AI Code Review Errors" displayType="BALLOON" />
     <notificationGroup id="AI Code Review" displayType="BALLOON" />
 </extensions>
-
     <actions>
+        // MAIN ACTIONS
         <action id="AIReviewAction.Review"
                 class="gordeev.dev.aicodereview.AIReviewAction"
                 text="Perform AI Code Review"
                 description="Choose branches to review changes">
             <add-to-group group-id="VcsGroups" anchor="last"/>
+        </action>
+
+        // GIT LOG ACTIONS
+        <action id="gordeev.dev.aicodereview.GitLogAIReviewAction"
+                class="gordeev.dev.aicodereview.GitLogAIReviewAction"
+                text="AI Review Selected Commit Against Current Branch"
+                description="Run AI code review comparing the selected commit with the current branch">
+            <add-to-group group-id="Vcs.Log.ContextMenu" anchor="last"/>
+        </action>
+
+        <action id="gordeev.dev.aicodereview.GitLogBranchAIReviewAction"
+                class="gordeev.dev.aicodereview.GitLogBranchAIReviewAction"
+                text="AI Review Selected Branch Against Current"
+                description="Run AI code review comparing the selected branch with the current branch">
+            <add-to-group group-id="Vcs.Log.ContextMenu" anchor="last"/>
         </action>
     </actions>
 </idea-plugin>

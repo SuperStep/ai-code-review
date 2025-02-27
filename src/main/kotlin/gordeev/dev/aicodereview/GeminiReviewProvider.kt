@@ -29,10 +29,11 @@ class GeminiReviewProvider : AiReviewProvider {
             )
         )
         val request = HttpRequest.newBuilder()
-            .uri(URI.create("https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${settings.geminiToken}"))
+            .uri(URI.create("https://generativelanguage.googleapis.com/v1/models/gemini-2.0-flash:generateContent?key=${settings.geminiToken}"))
             .header("Content-Type", "application/json")
             .POST(HttpRequest.BodyPublishers.ofString(requestBody))
             .build()
+
 
         try {
             val response = client.send(request, HttpResponse.BodyHandlers.ofString())

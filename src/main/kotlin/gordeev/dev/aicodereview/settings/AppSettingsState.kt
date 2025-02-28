@@ -20,8 +20,17 @@ class AppSettingsState : PersistentStateComponent<AppSettingsState> {
     var ollamaUrl: String = "http://localhost:11434/api/generate"
     var ollamaModel: String = ""
     var geminiToken: String = ""
-    var includeRepositoryContext: Boolean = false // Add the new setting, default to false
+    var includeRepositoryContext: Boolean = false
     var userMessage: String = ""
+
+    // Bitbucket settings
+    var bitbucketHostname: String = ""
+    var bitbucketToken: String = ""
+    var bitbucketWorkspace: String = ""
+    var bitbucketRepo: String = ""
+    var bitbucketCertificatePath: String = ""
+    var bitbucketDisableCertVerification: Boolean = true // Added option to disable cert verification
+
     override fun getState(): AppSettingsState {
         return this
     }

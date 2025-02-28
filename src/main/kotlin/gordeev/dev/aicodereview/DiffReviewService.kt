@@ -23,7 +23,7 @@ class DiffReviewService {
             }
             val review = aiService.getReview(project, diff)
             if (review != null) {
-                ReviewDialog(project, review).show()
+                ReviewDialog(project, review, sourceBranch, targetBranch).show()
             } // Error handling is done within the service implementations
         } else {
             NotificationUtil.showErrorNotification(project, "Failed to get diff")

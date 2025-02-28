@@ -2,7 +2,10 @@ package gordeev.dev.aicodereview.settings
 
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
+import com.intellij.openapi.fileChooser.FileChooserDescriptorFactory
 import com.intellij.openapi.options.Configurable
+import com.intellij.openapi.ui.TextBrowseFolderListener
+import com.intellij.openapi.ui.TextFieldWithBrowseButton
 import com.intellij.ui.components.JBCheckBox
 import com.intellij.ui.components.JBLabel
 import com.intellij.ui.components.JBRadioButton
@@ -20,6 +23,7 @@ class AppSettingsConfigurable : Configurable {
 
     private val settings = AppSettingsState.instance
 
+    // AI Model fields
     private lateinit var ollamaUrlField: JBTextField
     private lateinit var ollamaModelComboBox: JComboBox<String>
     private lateinit var fetchModelsButton: JButton
@@ -31,12 +35,39 @@ class AppSettingsConfigurable : Configurable {
     private lateinit var geminiTokenLabel: JBLabel
     private lateinit var includeRepositoryContextCheckbox: JBCheckBox
     private lateinit var userMessageTextArea: JBTextArea
-    private var myMainPanel: JPanel? = null
 
+    // Bitbucket fields
+    private lateinit var bitbucketHostnameField: JBTextField
+    private lateinit var bitbucketTokenField: JBTextField
+    private lateinit var bitbucketWorkspaceField: JBTextField
+    private lateinit var bitbucketRepoField: JBTextField
+    private lateinit var bitbucketCertificatePathField: TextFieldWithBrowseButton
+
+    private var myMainPanel: JPanel? = null
+    private var tabbedPane: JTabbedPane? = null
 
     override fun getDisplayName(): String = "AI Code Review"
 
     override fun createComponent(): JPanel {
+        tabbedPane = JTabbedPane()
+
+        // Create AI Model tab
+        val aiModelPanel = createAiModelPanel()
+
+        // Create Bitbucket tab
+        val bitbucketPanel = createBitbucketPanel()
+
+        // Add tabs
+        tabbedPane!!.addTab("AI Model", aiModelPanel)
+        tabbedPane!!.addTab("Bitbucket", bitbucketPanel)
+
+        myMainPanel = JPanel()
+        myMainPanel!!.add(tabbedPane)
+
+        return myMainPanel!!
+    }
+
+    private fun createAiModelPanel(): JPanel {
         ollamaUrlField = JBTextField(settings.ollamaUrl)
         ollamaModelComboBox = JComboBox()
         fetchModelsButton = JButton("Fetch Models")
@@ -57,7 +88,7 @@ class AppSettingsConfigurable : Configurable {
         ollamaRadioButton.addActionListener { updateComponentsVisibility() }
         geminiRadioButton.addActionListener { updateComponentsVisibility() }
 
-        myMainPanel = FormBuilder.createFormBuilder()
+        val panel = FormBuilder.createFormBuilder()
             .addLabeledComponent(JBLabel("Model Provider: "), JPanel().apply {
                 add(ollamaRadioButton)
                 add(geminiRadioButton)
@@ -76,7 +107,32 @@ class AppSettingsConfigurable : Configurable {
             fetchOllamaModels()
         }
 
-        return myMainPanel!!
+        return panel
+    }
+
+    private fun createBitbucketPanel(): JPanel {
+        bitbucketHostnameField = JBTextField(settings.bitbucketHostname)
+        bitbucketTokenField = JBTextField(settings.bitbucketToken)
+        bitbucketWorkspaceField = JBTextField(settings.bitbucketWorkspace)
+        bitbucketRepoField = JBTextField(settings.bitbucketRepo)
+
+        // Add certificate path field with file browser
+        bitbucketCertificatePathField = TextFieldWithBrowseButton()
+        bitbucketCertificatePathField.text = settings.bitbucketCertificatePath
+        bitbucketCertificatePathField.addBrowseFolderListener(
+            TextBrowseFolderListener(
+                FileChooserDescriptorFactory.createSingleFileDescriptor("crt;pem;cer")
+            )
+        )
+
+        return FormBuilder.createFormBuilder()
+            .addLabeledComponent(JBLabel("Bitbucket Hostname: "), bitbucketHostnameField, 1, false)
+            .addLabeledComponent(JBLabel("Bitbucket Token: "), bitbucketTokenField, 1, false)
+            .addLabeledComponent(JBLabel("Bitbucket Workspace: "), bitbucketWorkspaceField, 1, false)
+            .addLabeledComponent(JBLabel("Bitbucket Repository: "), bitbucketRepoField, 1, false)
+            .addLabeledComponent(JBLabel("Certificate Path: "), bitbucketCertificatePathField, 1, false)
+            .addComponentFillVertically(JPanel(), 0)
+            .panel
     }
 
     override fun isModified(): Boolean {
@@ -85,7 +141,12 @@ class AppSettingsConfigurable : Configurable {
                 geminiTokenField.text != settings.geminiToken ||
                 getSelectedProvider() != settings.modelProvider ||
                 includeRepositoryContextCheckbox.isSelected != settings.includeRepositoryContext ||
-                userMessageTextArea.text != settings.userMessage
+                userMessageTextArea.text != settings.userMessage ||
+                bitbucketHostnameField.text != settings.bitbucketHostname ||
+                bitbucketTokenField.text != settings.bitbucketToken ||
+                bitbucketWorkspaceField.text != settings.bitbucketWorkspace ||
+                bitbucketRepoField.text != settings.bitbucketRepo ||
+                bitbucketCertificatePathField.text != settings.bitbucketCertificatePath
     }
 
     override fun apply() {
@@ -95,6 +156,13 @@ class AppSettingsConfigurable : Configurable {
         settings.modelProvider = getSelectedProvider()
         settings.includeRepositoryContext = includeRepositoryContextCheckbox.isSelected
         settings.userMessage = userMessageTextArea.text
+
+        // Save Bitbucket settings
+        settings.bitbucketHostname = bitbucketHostnameField.text
+        settings.bitbucketToken = bitbucketTokenField.text
+        settings.bitbucketWorkspace = bitbucketWorkspaceField.text
+        settings.bitbucketRepo = bitbucketRepoField.text
+        settings.bitbucketCertificatePath = bitbucketCertificatePathField.text
     }
 
     override fun reset() {
@@ -109,11 +177,20 @@ class AppSettingsConfigurable : Configurable {
         }
         includeRepositoryContextCheckbox.isSelected = settings.includeRepositoryContext
         userMessageTextArea.text = settings.userMessage
+
+        // Reset Bitbucket fields
+        bitbucketHostnameField.text = settings.bitbucketHostname
+        bitbucketTokenField.text = settings.bitbucketToken
+        bitbucketWorkspaceField.text = settings.bitbucketWorkspace
+        bitbucketRepoField.text = settings.bitbucketRepo
+        bitbucketCertificatePathField.text = settings.bitbucketCertificatePath
+
         updateComponentsVisibility()
     }
 
     override fun disposeUIResources() {
         myMainPanel = null
+        tabbedPane = null
     }
 
     private fun getSelectedProvider(): AppSettingsState.ModelProvider {

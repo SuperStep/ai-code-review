@@ -16,7 +16,7 @@
     <description><![CDATA[
     <h2>AI Code Review Assistant powered by Local LLMs</h2>
 
-    <p>A powerful IntelliJ IDEA plugin that brings AI-powered code review capabilities directly to your IDE using local LLaMA models. Perfect for teams using Bitbucket!</p>
+    <p>A powerful IntelliJ IDEA plugin that brings AI-powered code review capabilities directly to your IDE using local LLaMA models</p>
 
     <h3>Key Features:</h3>
     <ul>
@@ -27,9 +27,19 @@
     </ul>
 
     <h3>How It Works:</h3>
-    <p>The plugin seamlessly integrates with your Bitbucket workflow, analyzing pull requests and providing smart suggestions for code improvements, best practices, and potential issues - all powered by local LLaMA models.</p>
+    <p>
+        The plugin identifies the changes in your current branch by comparing it against a selected target branch.
+        It then gathers the differences (diffs) and sends them to a locally running Ollama model or a Gemini model
+        (using your personal API key) for analysis and review suggestions.
+    </p>
 
     <p>Start getting intelligent code reviews today without compromising on privacy or security!</p>
+        <ul>
+        <li>➕ <strong>Bitbucket Integration</strong> -  Create pull requests directly from the IDE.</li>
+        <li>➕ <strong>Expanded Model Support</strong> -  Integrate with more models, including Deepseek.</li>
+        <li>➕ <strong>Customizable Codestyle</strong> - Allow users to customize the prompts with own codestyle for code review.</li>
+        <li>➕ <strong>Improved Context Handling</strong> - Enhance the plugin's ability to understand larger code contexts.</li>
+    </ul>
 ]]></description>
 
 

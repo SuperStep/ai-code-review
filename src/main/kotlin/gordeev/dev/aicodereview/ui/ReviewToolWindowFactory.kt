@@ -49,11 +49,14 @@ class ReviewPanel(private val project: Project) : JPanel() {
         // --- Row 0: Update Branches Button ---
         gbc.gridx = 0
         gbc.gridy = 0
-        gbc.gridwidth = 1 //  Back to 1
-        gbc.weightx = 0.5  //  Split horizontal space
+        gbc.gridwidth = 1
+        gbc.weightx = 0.01
         gbc.fill = GridBagConstraints.HORIZONTAL
         gbc.insets = Insets(5, 5, 5, 5)
         add(updateBranchesButton, gbc)
+
+        updateBranchesButton.icon = com.intellij.icons.AllIcons.Actions.Refresh
+        updateBranchesButton.text = ""
 
         // --- Row 0: Create Pull Request Button ---
         gbc.gridx = 1 //  Next column
@@ -63,6 +66,9 @@ class ReviewPanel(private val project: Project) : JPanel() {
         gbc.fill = GridBagConstraints.HORIZONTAL
         gbc.insets = Insets(5, 5, 5, 5)
         add(createPullRequestButton, gbc)
+        // TODO: Enable after PR is implemented
+        createPullRequestButton.isEnabled = false
+
 
 
         // --- Row 1: Current Branch ---

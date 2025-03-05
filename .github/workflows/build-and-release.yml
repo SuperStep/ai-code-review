@@ -25,12 +25,23 @@ jobs:
       - name: Grant execute permission to gradlew
         run: chmod +x gradlew
 
-      - name: Build plugin
-        run: ./gradlew buildPlugin
-
       - name: Get Version from Tag
         id: get_version
         run: echo "VERSION=${GITHUB_REF/refs\/tags\/v/}" >> $GITHUB_OUTPUT
+
+      - name: Update version in build.gradle.kts
+        run: |
+          sed -i "s/version = \".*\"/version = \"${{ steps.get_version.outputs.VERSION }}\"/" build.gradle.kts
+
+      - name: Commit version change
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git commit -am "Update version to ${{ steps.get_version.outputs.VERSION }}"
+          git push
+
+      - name: Build plugin
+        run: ./gradlew buildPlugin
 
       - name: Create Release
         id: create_release

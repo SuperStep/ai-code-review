@@ -31,6 +31,7 @@ intellij {
 
 dependencies {
     implementation("org.jetbrains.kotlin:kotlin-stdlib")
+    implementation("org.commonmark:commonmark:0.21.0")
 }
 
 

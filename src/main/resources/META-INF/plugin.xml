@@ -41,39 +41,21 @@
 
     <!-- Extension points defined by the plugin.
          Read more: https://plugins.jetbrains.com/docs/intellij/plugin-extension-points.html -->
-<extensions defaultExtensionNs="com.intellij">
-    <applicationConfigurable
-            parentId="tools"
-            instance="gordeev.dev.aicodereview.settings.AppSettingsConfigurable"
-            id="gordeev.dev.aicodereview.settings.AppSettingsConfigurable"
-            displayName="AI Code Review Settings"/>
-    <applicationService serviceImplementation="gordeev.dev.aicodereview.settings.AppSettingsState"/>
+    <extensions defaultExtensionNs="com.intellij">
+        <applicationConfigurable
+                parentId="tools"
+                instance="gordeev.dev.aicodereview.settings.AppSettingsConfigurable"
+                id="gordeev.dev.aicodereview.settings.AppSettingsConfigurable"
+                displayName="AI Code Review Settings"/>
+        <applicationService serviceImplementation="gordeev.dev.aicodereview.settings.AppSettingsState"/>
 
-    <notificationGroup id="AI Code Review Errors" displayType="BALLOON" />
-    <notificationGroup id="AI Code Review" displayType="BALLOON" />
-</extensions>
-    <actions>
-        // MAIN ACTIONS
-        <action id="AIReviewAction.Review"
-                class="gordeev.dev.aicodereview.AIReviewAction"
-                text="Perform AI Code Review"
-                description="Choose branches to review changes">
-            <add-to-group group-id="VcsGroups" anchor="last"/>
-        </action>
+        <notificationGroup id="AI Code Review Errors" displayType="BALLOON" />
+        <notificationGroup id="AI Code Review" displayType="BALLOON" />
 
-        // GIT LOG ACTIONS
-        <action id="gordeev.dev.aicodereview.GitLogAIReviewAction"
-                class="gordeev.dev.aicodereview.GitLogAIReviewAction"
-                text="AI Review Selected Commit Against Current Branch"
-                description="Run AI code review comparing the selected commit with the current branch">
-            <add-to-group group-id="Vcs.Log.ContextMenu" anchor="last"/>
-        </action>
-
-        <action id="gordeev.dev.aicodereview.GitLogBranchAIReviewAction"
-                class="gordeev.dev.aicodereview.GitLogBranchAIReviewAction"
-                text="AI Review Selected Branch Against Current"
-                description="Run AI code review comparing the selected branch with the current branch">
-            <add-to-group group-id="Vcs.Log.ContextMenu" anchor="last"/>
-        </action>
-    </actions>
+        <toolWindow id="AI Code Review"
+                    factoryClass="gordeev.dev.aicodereview.ui.ReviewToolWindowFactory"
+                    anchor="right"
+                    icon="/icons/toolWindowIcon.svg">
+        </toolWindow>
+    </extensions>
 </idea-plugin>

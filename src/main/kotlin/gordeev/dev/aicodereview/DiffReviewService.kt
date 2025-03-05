@@ -11,8 +11,9 @@ import gordeev.dev.aicodereview.settings.AppSettingsState
 
 class DiffReviewService {
 
-    fun performReview(project: Project, sourceBranch: String, targetBranch: String) {
-        val repository = GitUtil.getRepositoryManager(project).repositories.firstOrNull() ?: return
+    fun performReview(project: Project, sourceBranch: String, targetBranch: String): String? {
+        var review = ""
+        val repository = GitUtil.getRepositoryManager(project).repositories.firstOrNull() ?: return review
 
         val diff = getDiff(project, repository, sourceBranch, targetBranch)
         if (diff != null) {
@@ -21,13 +22,11 @@ class DiffReviewService {
                 AppSettingsState.ModelProvider.OLLAMA -> OllamaReviewProvider()
                 AppSettingsState.ModelProvider.GEMINI -> GeminiReviewProvider()
             }
-            val review = aiService.getReview(project, diff)
-            if (review != null) {
-                ReviewDialog(project, review, sourceBranch, targetBranch).show()
-            } // Error handling is done within the service implementations
+            review = aiService.getReview(project, diff)?: ""
         } else {
             NotificationUtil.showErrorNotification(project, "Failed to get diff")
         }
+        return review
     }
 
     fun getDiff(project: Project, repository: GitRepository, sourceBranch: String, targetBranch: String): String? {

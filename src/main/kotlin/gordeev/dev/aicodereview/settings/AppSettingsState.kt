@@ -21,25 +21,28 @@ class AppSettingsState : PersistentStateComponent<AppSettingsState> {
     var ollamaModel: String = ""
     var geminiToken: String = ""
     var includeRepositoryContext: Boolean = false
-    var userMessage: String = ""
+    var userMessage: String = """
+    Please review and analyze the code below and identify 
+    potential areas for improvement 
+    related to code smells, readability, maintainability, performance, security, etc. 
+    For each suggestion, provide a brief explanation of the potential benefits.
+    Provide filename, method name you are suggesting to improve.
+    Provide examples if there code that need to be changed.
+         
+    After listing any recommendations, summarize
+    if you found notable opportunities to enhance the code quality overall 
+    or if the code generally follows sound design principles. 
+    If no issues found, reply "There are no errors."    
+        
+    Here are the code for you review:
+    """.trimIndent()
 
     // Bitbucket settings
     var bitbucketHostname: String = ""
     var bitbucketToken: String = ""
     var bitbucketWorkspace: String = ""
     var bitbucketRepo: String = ""
-    var bitbucketCertificatePath: String = """
-    Please review and analyze the code below and identify potential areas for improvement 
-    related to code smells, readability, maintainability, performance, security, etc. 
-    For each suggestion, provide a brief explanation of the potential benefits.
-    Provide filename, method name you are suggesting to improve.
-    Provide examples if there code that need to be changed.
-         
-    After listing any recommendations, summarize if you found notable opportunities to enhance the code quality overall or if the code generally follows sound design principles. 
-    If no issues found, reply "There are no errors."    
-        
-    Here are the code for you review:
-    """.trimIndent()
+    var bitbucketCertificatePath: String = ""
     var bitbucketDisableCertVerification: Boolean = true // Added option to disable cert verification
 
     override fun getState(): AppSettingsState {

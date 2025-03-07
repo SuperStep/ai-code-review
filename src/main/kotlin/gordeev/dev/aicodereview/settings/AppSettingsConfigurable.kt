@@ -4,6 +4,7 @@ import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import com.intellij.openapi.fileChooser.FileChooserDescriptorFactory
 import com.intellij.openapi.options.Configurable
+import com.intellij.openapi.ui.ComboBox
 import com.intellij.openapi.ui.TextBrowseFolderListener
 import com.intellij.openapi.ui.TextFieldWithBrowseButton
 import com.intellij.ui.components.JBCheckBox
@@ -12,12 +13,13 @@ import com.intellij.ui.components.JBRadioButton
 import com.intellij.ui.components.JBTextArea
 import com.intellij.ui.components.JBTextField
 import com.intellij.util.ui.FormBuilder
-import java.awt.event.ActionEvent
 import java.net.URI
 import java.net.http.HttpClient
 import java.net.http.HttpRequest
 import java.net.http.HttpResponse
 import javax.swing.*
+import com.intellij.ui.components.JBTabbedPane
+import java.awt.BorderLayout
 
 class AppSettingsConfigurable : Configurable {
 
@@ -25,7 +27,7 @@ class AppSettingsConfigurable : Configurable {
 
     // AI Model fields
     private lateinit var ollamaUrlField: JBTextField
-    private lateinit var ollamaModelComboBox: JComboBox<String>
+    private lateinit var ollamaModelComboBox: ComboBox<String>
     private lateinit var fetchModelsButton: JButton
     private lateinit var geminiTokenField: JBTextField
     private lateinit var ollamaRadioButton: JBRadioButton
@@ -44,12 +46,13 @@ class AppSettingsConfigurable : Configurable {
     private lateinit var bitbucketCertificatePathField: TextFieldWithBrowseButton
 
     private var myMainPanel: JPanel? = null
-    private var tabbedPane: JTabbedPane? = null
+    private var tabbedPane: JBTabbedPane? = null
 
     override fun getDisplayName(): String = "AI Code Review"
 
     override fun createComponent(): JPanel {
-        tabbedPane = JTabbedPane()
+
+        tabbedPane = JBTabbedPane()
 
         // Create AI Model tab
         val aiModelPanel = createAiModelPanel()
@@ -61,15 +64,17 @@ class AppSettingsConfigurable : Configurable {
         tabbedPane!!.addTab("AI Model", aiModelPanel)
         tabbedPane!!.addTab("Bitbucket", bitbucketPanel)
 
-        myMainPanel = JPanel()
-        myMainPanel!!.add(tabbedPane)
+        myMainPanel = JPanel(BorderLayout()) // Use BorderLayout
+        val tabWrapper = JPanel(BorderLayout()) // Wrap tabbedPane
+        tabWrapper.add(tabbedPane!!, BorderLayout.NORTH) // Add tabbedPane to wrapper
+        myMainPanel!!.add(tabWrapper, BorderLayout.NORTH) // Add the wrapper to the main panel
 
         return myMainPanel!!
     }
 
     private fun createAiModelPanel(): JPanel {
         ollamaUrlField = JBTextField(settings.ollamaUrl)
-        ollamaModelComboBox = JComboBox()
+        ollamaModelComboBox = ComboBox()
         fetchModelsButton = JButton("Fetch Models")
         geminiTokenField = JBTextField(settings.geminiToken)
         ollamaRadioButton = JBRadioButton("Ollama", settings.modelProvider == AppSettingsState.ModelProvider.OLLAMA)
@@ -103,7 +108,7 @@ class AppSettingsConfigurable : Configurable {
             .panel
 
         updateComponentsVisibility()
-        if (settings.modelProvider == AppSettingsState.ModelProvider.OLLAMA && settings.ollamaUrl.isNotBlank() && ollamaModelComboBox.model.size == 0) {
+        if (settings.modelProvider == AppSettingsState.ModelProvider.OLLAMA && settings.ollamaUrl.isNotBlank() && ollamaModelComboBox.itemCount == 0) {
             fetchOllamaModels()
         }
 
@@ -229,7 +234,9 @@ class AppSettingsConfigurable : Configurable {
                 val modelList: ModelList = gson.fromJson(body, modelListType)
 
                 val modelNames = modelList.models.map { it.name }
-                ollamaModelComboBox.model = DefaultComboBoxModel(modelNames.toTypedArray())
+                ollamaModelComboBox.removeAllItems() // Clear existing items
+                modelNames.forEach { ollamaModelComboBox.addItem(it) }
+
                 if (settings.ollamaModel.isNotEmpty() && modelNames.contains(settings.ollamaModel)) {
                     ollamaModelComboBox.selectedItem = settings.ollamaModel
                 }

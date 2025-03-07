@@ -1,4 +1,4 @@
-package gordeev.dev.aicodereview
+package gordeev.dev.aicodereview.provider
 
 import com.intellij.openapi.project.Project
 

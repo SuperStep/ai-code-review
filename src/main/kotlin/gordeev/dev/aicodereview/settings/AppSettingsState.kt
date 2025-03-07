@@ -14,12 +14,14 @@ class AppSettingsState : PersistentStateComponent<AppSettingsState> {
 
     enum class ModelProvider {
         OLLAMA,
-        GEMINI
+        GEMINI,
+        TOGETHER_AI // Add the new provider
     }
     var modelProvider: ModelProvider = ModelProvider.OLLAMA // Default to Ollama
     var ollamaUrl: String = "http://localhost:11434/api/generate"
     var ollamaModel: String = ""
     var geminiToken: String = ""
+    var togetherApiKey: String = "" // Add the TogetherAI API key field
     var includeRepositoryContext: Boolean = false
     var userMessage: String = """
     Please review and analyze the code below and identify 

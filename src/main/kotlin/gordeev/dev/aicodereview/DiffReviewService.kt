@@ -7,6 +7,10 @@ import git4idea.commands.Git
 import git4idea.commands.GitCommand
 import git4idea.commands.GitLineHandler
 import git4idea.repo.GitRepository
+import gordeev.dev.aicodereview.provider.AiReviewProvider
+import gordeev.dev.aicodereview.provider.GeminiReviewProvider
+import gordeev.dev.aicodereview.provider.OllamaReviewProvider
+import gordeev.dev.aicodereview.provider.TogetherAiReviewProvider
 import gordeev.dev.aicodereview.settings.AppSettingsState
 
 class DiffReviewService {
@@ -21,6 +25,7 @@ class DiffReviewService {
             val aiService: AiReviewProvider = when (settings.modelProvider) {
                 AppSettingsState.ModelProvider.OLLAMA -> OllamaReviewProvider()
                 AppSettingsState.ModelProvider.GEMINI -> GeminiReviewProvider()
+                AppSettingsState.ModelProvider.TOGETHER_AI -> TogetherAiReviewProvider()
             }
             review = aiService.getReview(project, diff)?: ""
         } else {

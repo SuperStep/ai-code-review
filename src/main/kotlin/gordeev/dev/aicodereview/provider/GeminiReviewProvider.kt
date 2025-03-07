@@ -1,7 +1,8 @@
-package gordeev.dev.aicodereview
+package gordeev.dev.aicodereview.provider
 
 import com.google.gson.Gson
 import com.intellij.openapi.project.Project
+import gordeev.dev.aicodereview.NotificationUtil
 import gordeev.dev.aicodereview.settings.AppSettingsState
 import java.net.URI
 import java.net.http.HttpClient
@@ -42,7 +43,10 @@ class GeminiReviewProvider : AiReviewProvider {
                 val jsonResponse = Gson().fromJson(body, Map::class.java)
                 return extractGeminiResponse(jsonResponse)
             } else {
-                NotificationUtil.showErrorNotification(project, "Gemini API error: ${response.statusCode()} - ${response.body()}")
+                NotificationUtil.showErrorNotification(
+                    project,
+                    "Gemini API error: ${response.statusCode()} - ${response.body()}"
+                )
                 return null
             }
 

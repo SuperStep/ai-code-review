@@ -1,7 +1,8 @@
-package gordeev.dev.aicodereview
+package gordeev.dev.aicodereview.provider
 
 import com.google.gson.Gson
 import com.intellij.openapi.project.Project
+import gordeev.dev.aicodereview.NotificationUtil
 import gordeev.dev.aicodereview.settings.AppSettingsState
 import java.net.URI
 import java.net.http.HttpClient
@@ -40,7 +41,10 @@ class OllamaReviewProvider : AiReviewProvider {
                 val jsonResponse = Gson().fromJson(body, Map::class.java)
                 return jsonResponse["response"] as? String ?: "No response from AI."
             } else {
-                NotificationUtil.showErrorNotification(project, "Ollama API error: ${response.statusCode()} - ${response.body()}")
+                NotificationUtil.showErrorNotification(
+                    project,
+                    "Ollama API error: ${response.statusCode()} - ${response.body()}"
+                )
                 return null
             }
         } catch (e: Exception) {

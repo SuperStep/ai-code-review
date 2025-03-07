@@ -9,7 +9,6 @@ import com.intellij.openapi.ui.TextBrowseFolderListener
 import com.intellij.openapi.ui.TextFieldWithBrowseButton
 import com.intellij.ui.components.JBCheckBox
 import com.intellij.ui.components.JBLabel
-import com.intellij.ui.components.JBRadioButton
 import com.intellij.ui.components.JBTextArea
 import com.intellij.ui.components.JBTextField
 import com.intellij.util.ui.FormBuilder
@@ -25,16 +24,18 @@ class AppSettingsConfigurable : Configurable {
 
     private val settings = AppSettingsState.instance
 
-    // AI Model fields
+    // Ollama fields
     private lateinit var ollamaUrlField: JBTextField
     private lateinit var ollamaModelComboBox: ComboBox<String>
     private lateinit var fetchModelsButton: JButton
+
+    // Gemini fields
     private lateinit var geminiTokenField: JBTextField
-    private lateinit var ollamaRadioButton: JBRadioButton
-    private lateinit var geminiRadioButton: JBRadioButton
-    private lateinit var ollamaUrlLabel: JBLabel
-    private lateinit var ollamaModelLabel: JBLabel
-    private lateinit var geminiTokenLabel: JBLabel
+
+    // TogetherAI fields
+    private lateinit var togetherApiKeyField: JBTextField
+
+    // Common fields
     private lateinit var includeRepositoryContextCheckbox: JBCheckBox
     private lateinit var userMessageTextArea: JBTextArea
 
@@ -45,74 +46,106 @@ class AppSettingsConfigurable : Configurable {
     private lateinit var bitbucketRepoField: JBTextField
     private lateinit var bitbucketCertificatePathField: TextFieldWithBrowseButton
 
+    private var mainTabbedPane: JBTabbedPane? = null
+    private var aiModelTabbedPane: JBTabbedPane? = null
     private var myMainPanel: JPanel? = null
-    private var tabbedPane: JBTabbedPane? = null
 
     override fun getDisplayName(): String = "AI Code Review"
 
     override fun createComponent(): JPanel {
+        mainTabbedPane = JBTabbedPane()
 
-        tabbedPane = JBTabbedPane()
-
-        // Create AI Model tab
+        // Create main tabs
         val aiModelPanel = createAiModelPanel()
-
-        // Create Bitbucket tab
         val bitbucketPanel = createBitbucketPanel()
 
-        // Add tabs
-        tabbedPane!!.addTab("AI Model", aiModelPanel)
-        tabbedPane!!.addTab("Bitbucket", bitbucketPanel)
+        mainTabbedPane!!.addTab("AI Model", aiModelPanel)
+        mainTabbedPane!!.addTab("Bitbucket", bitbucketPanel)
 
-        myMainPanel = JPanel(BorderLayout()) // Use BorderLayout
-        val tabWrapper = JPanel(BorderLayout()) // Wrap tabbedPane
-        tabWrapper.add(tabbedPane!!, BorderLayout.NORTH) // Add tabbedPane to wrapper
-        myMainPanel!!.add(tabWrapper, BorderLayout.NORTH) // Add the wrapper to the main panel
+        myMainPanel = JPanel(BorderLayout())
+        myMainPanel!!.add(mainTabbedPane!!, BorderLayout.CENTER)
 
         return myMainPanel!!
     }
 
     private fun createAiModelPanel(): JPanel {
-        ollamaUrlField = JBTextField(settings.ollamaUrl)
-        ollamaModelComboBox = ComboBox()
-        fetchModelsButton = JButton("Fetch Models")
-        geminiTokenField = JBTextField(settings.geminiToken)
-        ollamaRadioButton = JBRadioButton("Ollama", settings.modelProvider == AppSettingsState.ModelProvider.OLLAMA)
-        geminiRadioButton = JBRadioButton("Gemini", settings.modelProvider == AppSettingsState.ModelProvider.GEMINI)
-        ollamaUrlLabel = JBLabel("Ollama URL: ")
-        ollamaModelLabel = JBLabel("Ollama Model: ")
-        geminiTokenLabel = JBLabel("Gemini Token: ")
+        // Create tabbed pane for AI model providers
+        aiModelTabbedPane = JBTabbedPane()
+
+        // Create tabs
+        val generalPanel = createGeneralPanel()
+        val ollamaPanel = createOllamaPanel()
+        val geminiPanel = createGeminiPanel()
+        val togetherAiPanel = createTogetherAiPanel()
+
+        // Add tabs in order
+        aiModelTabbedPane!!.addTab("General", generalPanel)
+        aiModelTabbedPane!!.addTab("Ollama", ollamaPanel)
+        aiModelTabbedPane!!.addTab("Gemini", geminiPanel)
+        aiModelTabbedPane!!.addTab("TogetherAI", togetherAiPanel)
+
+        // Select the correct tab based on current settings
+        when (settings.modelProvider) {
+            AppSettingsState.ModelProvider.OLLAMA -> aiModelTabbedPane!!.selectedIndex = 1
+            AppSettingsState.ModelProvider.GEMINI -> aiModelTabbedPane!!.selectedIndex = 2
+            AppSettingsState.ModelProvider.TOGETHER_AI -> aiModelTabbedPane!!.selectedIndex = 3
+        }
+
+        // Assemble the main AI model panel
+        val panel = JPanel(BorderLayout())
+        panel.add(aiModelTabbedPane!!, BorderLayout.CENTER)
+
+        return panel
+    }
+
+    private fun createGeneralPanel(): JPanel {
+        // Initialize common fields
         includeRepositoryContextCheckbox = JBCheckBox("Include repository context", settings.includeRepositoryContext)
         userMessageTextArea = JBTextArea(settings.userMessage, 5, 30)
 
-        val buttonGroup = ButtonGroup()
-        buttonGroup.add(ollamaRadioButton)
-        buttonGroup.add(geminiRadioButton)
-
-        fetchModelsButton.addActionListener { fetchOllamaModels() }
-        ollamaRadioButton.addActionListener { updateComponentsVisibility() }
-        geminiRadioButton.addActionListener { updateComponentsVisibility() }
-
-        val panel = FormBuilder.createFormBuilder()
-            .addLabeledComponent(JBLabel("Model Provider: "), JPanel().apply {
-                add(ollamaRadioButton)
-                add(geminiRadioButton)
-            })
-            .addLabeledComponent(ollamaUrlLabel, ollamaUrlField, 1, false)
-            .addLabeledComponent(ollamaModelLabel, ollamaModelComboBox, 1, false)
-            .addComponent(fetchModelsButton)
-            .addLabeledComponent(geminiTokenLabel, geminiTokenField, 1, false)
+        return FormBuilder.createFormBuilder()
             .addComponent(includeRepositoryContextCheckbox)
-            .addLabeledComponent(JBLabel("User Message: "), userMessageTextArea, 1, false)
+            .addLabeledComponent(JBLabel("User Message: "), JScrollPane(userMessageTextArea), 1, false)
             .addComponentFillVertically(JPanel(), 0)
             .panel
+    }
 
-        updateComponentsVisibility()
-        if (settings.modelProvider == AppSettingsState.ModelProvider.OLLAMA && settings.ollamaUrl.isNotBlank() && ollamaModelComboBox.itemCount == 0) {
+    private fun createOllamaPanel(): JPanel {
+        ollamaUrlField = JBTextField(settings.ollamaUrl)
+        ollamaModelComboBox = ComboBox()
+        fetchModelsButton = JButton("Fetch Models")
+
+        fetchModelsButton.addActionListener { fetchOllamaModels() }
+
+        // Populate the model combo box if settings are available
+        if (settings.ollamaUrl.isNotBlank() && settings.modelProvider == AppSettingsState.ModelProvider.OLLAMA) {
             fetchOllamaModels()
         }
 
-        return panel
+        return FormBuilder.createFormBuilder()
+            .addLabeledComponent(JBLabel("Ollama URL: "), ollamaUrlField, 1, false)
+            .addLabeledComponent(JBLabel("Ollama Model: "), ollamaModelComboBox, 1, false)
+            .addComponent(fetchModelsButton)
+            .addComponentFillVertically(JPanel(), 0)
+            .panel
+    }
+
+    private fun createGeminiPanel(): JPanel {
+        geminiTokenField = JBTextField(settings.geminiToken)
+
+        return FormBuilder.createFormBuilder()
+            .addLabeledComponent(JBLabel("Gemini Token: "), geminiTokenField, 1, false)
+            .addComponentFillVertically(JPanel(), 0)
+            .panel
+    }
+
+    private fun createTogetherAiPanel(): JPanel {
+        togetherApiKeyField = JBTextField(settings.togetherApiKey)
+
+        return FormBuilder.createFormBuilder()
+            .addLabeledComponent(JBLabel("TogetherAI API Key: "), togetherApiKeyField, 1, false)
+            .addComponentFillVertically(JPanel(), 0)
+            .panel
     }
 
     private fun createBitbucketPanel(): JPanel {
@@ -144,6 +177,7 @@ class AppSettingsConfigurable : Configurable {
         return ollamaUrlField.text != settings.ollamaUrl ||
                 (ollamaModelComboBox.selectedItem as? String ?: "") != settings.ollamaModel ||
                 geminiTokenField.text != settings.geminiToken ||
+                togetherApiKeyField.text != settings.togetherApiKey ||
                 getSelectedProvider() != settings.modelProvider ||
                 includeRepositoryContextCheckbox.isSelected != settings.includeRepositoryContext ||
                 userMessageTextArea.text != settings.userMessage ||
@@ -158,6 +192,7 @@ class AppSettingsConfigurable : Configurable {
         settings.ollamaUrl = ollamaUrlField.text
         settings.ollamaModel = ollamaModelComboBox.selectedItem as? String ?: ""
         settings.geminiToken = geminiTokenField.text
+        settings.togetherApiKey = togetherApiKeyField.text
         settings.modelProvider = getSelectedProvider()
         settings.includeRepositoryContext = includeRepositoryContextCheckbox.isSelected
         settings.userMessage = userMessageTextArea.text
@@ -171,15 +206,26 @@ class AppSettingsConfigurable : Configurable {
     }
 
     override fun reset() {
+        // Reset AI provider selection by selecting the appropriate tab
+        when (settings.modelProvider) {
+            AppSettingsState.ModelProvider.OLLAMA -> aiModelTabbedPane?.selectedIndex = 1
+            AppSettingsState.ModelProvider.GEMINI -> aiModelTabbedPane?.selectedIndex = 2
+            AppSettingsState.ModelProvider.TOGETHER_AI -> aiModelTabbedPane?.selectedIndex = 3
+        }
+
+        // Reset Ollama fields
         ollamaUrlField.text = settings.ollamaUrl
-        if (settings.ollamaModel.isNotEmpty() && (0 until ollamaModelComboBox.itemCount).any { ollamaModelComboBox.getItemAt(it) == settings.ollamaModel }) {
+        if (settings.ollamaModel.isNotEmpty() && (0 until ollamaModelComboBox.itemCount).any {
+                ollamaModelComboBox.getItemAt(it) == settings.ollamaModel
+            }) {
             ollamaModelComboBox.selectedItem = settings.ollamaModel
         }
+
+        // Reset other provider fields
         geminiTokenField.text = settings.geminiToken
-        when (settings.modelProvider) {
-            AppSettingsState.ModelProvider.OLLAMA -> ollamaRadioButton.isSelected = true
-            AppSettingsState.ModelProvider.GEMINI -> geminiRadioButton.isSelected = true
-        }
+        togetherApiKeyField.text = settings.togetherApiKey
+
+        // Reset common fields
         includeRepositoryContextCheckbox.isSelected = settings.includeRepositoryContext
         userMessageTextArea.text = settings.userMessage
 
@@ -189,34 +235,21 @@ class AppSettingsConfigurable : Configurable {
         bitbucketWorkspaceField.text = settings.bitbucketWorkspace
         bitbucketRepoField.text = settings.bitbucketRepo
         bitbucketCertificatePathField.text = settings.bitbucketCertificatePath
-
-        updateComponentsVisibility()
     }
 
     override fun disposeUIResources() {
         myMainPanel = null
-        tabbedPane = null
+        mainTabbedPane = null
+        aiModelTabbedPane = null
     }
 
     private fun getSelectedProvider(): AppSettingsState.ModelProvider {
-        return if (ollamaRadioButton.isSelected) {
-            AppSettingsState.ModelProvider.OLLAMA
-        } else {
-            AppSettingsState.ModelProvider.GEMINI
+        return when (aiModelTabbedPane?.selectedIndex) {
+            1 -> AppSettingsState.ModelProvider.OLLAMA
+            2 -> AppSettingsState.ModelProvider.GEMINI
+            3 -> AppSettingsState.ModelProvider.TOGETHER_AI
+            else -> AppSettingsState.ModelProvider.OLLAMA // Default
         }
-    }
-
-    private fun updateComponentsVisibility() {
-        val isOllamaSelected = ollamaRadioButton.isSelected
-
-        ollamaUrlField.isVisible = isOllamaSelected
-        ollamaModelComboBox.isVisible = isOllamaSelected
-        fetchModelsButton.isVisible = isOllamaSelected
-        geminiTokenField.isVisible = !isOllamaSelected
-
-        ollamaUrlLabel.isVisible = isOllamaSelected
-        ollamaModelLabel.isVisible = isOllamaSelected
-        geminiTokenLabel.isVisible = !isOllamaSelected
     }
 
     private fun fetchOllamaModels() {

@@ -1,7 +1,9 @@
 # AI Code Review - IntelliJ IDEA Plugin
 
-[![JetBrains Plugin](https://img.shields.io/jetbrains/plugin/v/gordeev.dev.aicodereview.svg)](https://plugins.jetbrains.com/plugin/YOUR_PLUGIN_ID)  <!-- Replace YOUR_PLUGIN_ID -->
-[![Downloads](https://img.shields.io/jetbrains/plugin/d/gordeev.dev.aicodereview.svg)](https://plugins.jetbrains.com/plugin/YOUR_PLUGIN_ID)  <!-- Replace YOUR_PLUGIN_ID -->
+[![JetBrains Plugin](https://img.shields.io/jetbrains/plugin/v/gordeev.dev.aicodereview.svg)](https://plugins.jetbrains.com/plugin/26702-ai-code-review)
+[![Downloads](https://img.shields.io/jetbrains/plugin/d/gordeev.dev.aicodereview.svg)](https://plugins.jetbrains.com/plugin/26702-ai-code-review)
+
+[Available on marketplace](https://plugins.jetbrains.com/plugin/26702-ai-code-review?noRedirect=true)
 
 ## Overview
 

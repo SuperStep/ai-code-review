@@ -22,6 +22,7 @@ class AppSettingsState : PersistentStateComponent<AppSettingsState> {
     var ollamaModel: String = ""
     var geminiToken: String = ""
     var togetherApiKey: String = "" // Add the TogetherAI API key field
+    var togetherAiModel: String = "meta-llama/Llama-Vision-Free"
     var includeRepositoryContext: Boolean = false
     var userMessage: String = """
     Please review and analyze the code below and identify 

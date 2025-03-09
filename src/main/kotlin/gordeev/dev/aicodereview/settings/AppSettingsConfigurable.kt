@@ -34,6 +34,7 @@ class AppSettingsConfigurable : Configurable {
 
     // TogetherAI fields
     private lateinit var togetherApiKeyField: JBTextField
+    private lateinit var togetherAiModelField: JBTextField
 
     // Common fields
     private lateinit var includeRepositoryContextCheckbox: JBCheckBox
@@ -141,9 +142,11 @@ class AppSettingsConfigurable : Configurable {
 
     private fun createTogetherAiPanel(): JPanel {
         togetherApiKeyField = JBTextField(settings.togetherApiKey)
+        togetherAiModelField = JBTextField(settings.togetherAiModel) // Initialize the new field
 
         return FormBuilder.createFormBuilder()
             .addLabeledComponent(JBLabel("TogetherAI API Key: "), togetherApiKeyField, 1, false)
+            .addLabeledComponent(JBLabel("TogetherAI Model: "), togetherAiModelField, 1, false) // Add to the form
             .addComponentFillVertically(JPanel(), 0)
             .panel
     }
@@ -178,6 +181,7 @@ class AppSettingsConfigurable : Configurable {
                 (ollamaModelComboBox.selectedItem as? String ?: "") != settings.ollamaModel ||
                 geminiTokenField.text != settings.geminiToken ||
                 togetherApiKeyField.text != settings.togetherApiKey ||
+                togetherAiModelField.text != settings.togetherAiModel || // Check the new field
                 getSelectedProvider() != settings.modelProvider ||
                 includeRepositoryContextCheckbox.isSelected != settings.includeRepositoryContext ||
                 userMessageTextArea.text != settings.userMessage ||
@@ -193,6 +197,7 @@ class AppSettingsConfigurable : Configurable {
         settings.ollamaModel = ollamaModelComboBox.selectedItem as? String ?: ""
         settings.geminiToken = geminiTokenField.text
         settings.togetherApiKey = togetherApiKeyField.text
+        settings.togetherAiModel = togetherAiModelField.text // Save the new field
         settings.modelProvider = getSelectedProvider()
         settings.includeRepositoryContext = includeRepositoryContextCheckbox.isSelected
         settings.userMessage = userMessageTextArea.text
@@ -224,6 +229,7 @@ class AppSettingsConfigurable : Configurable {
         // Reset other provider fields
         geminiTokenField.text = settings.geminiToken
         togetherApiKeyField.text = settings.togetherApiKey
+        togetherAiModelField.text = settings.togetherAiModel // Reset the new field
 
         // Reset common fields
         includeRepositoryContextCheckbox.isSelected = settings.includeRepositoryContext

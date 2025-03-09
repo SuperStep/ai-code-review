@@ -29,12 +29,19 @@
     <h3>How It Works:</h3>
     <p>
         The plugin identifies the changes in your current branch by comparing it against a selected target branch.
-        It then gathers the differences (diffs) and sends them to a locally running Ollama model or a Gemini model
+        It then gathers the differences (diffs) and sends them to an external service
         (using your personal API key) for analysis and review suggestions.
     </p>
 
-    <p>Start getting intelligent code reviews today without compromising on privacy or security!</p>
-        <ul>
+    <h3>Supported providers:</h3>
+    <ul>
+        <li> 🦙 <strong>Ollama</strong> - Locally deployed models</li>
+        <li> ♊ <strong>Gemini</strong> - gemini-2.0-flash</li>
+        <li> 🤝 <strong>Together AI</strong> - any available</li>
+    </ul>
+
+    <p>TODO:</p>
+    <ul>
         <li>➕ <strong>Bitbucket Integration</strong> -  Create pull requests directly from the IDE.</li>
         <li>➕ <strong>Expanded Model Support</strong> -  Integrate with more models, including Deepseek.</li>
         <li>➕ <strong>Customizable Codestyle</strong> - Allow users to customize the prompts with own codestyle for code review.</li>

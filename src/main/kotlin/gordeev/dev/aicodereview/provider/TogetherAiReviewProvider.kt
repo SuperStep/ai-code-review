@@ -22,7 +22,7 @@ class TogetherAiReviewProvider : AiReviewProvider {
         val client = HttpClient.newHttpClient()
         val requestBody = Gson().toJson(
             mapOf(
-                "model" to "meta-llama/Llama-3-70B-Instruct-Turbo",
+                "model" to settings.togetherAiModel,
                 "messages" to listOf(
                     mapOf(
                         "role" to "user",

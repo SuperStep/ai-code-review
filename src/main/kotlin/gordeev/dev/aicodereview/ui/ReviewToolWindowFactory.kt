@@ -1,5 +1,6 @@
 package gordeev.dev.aicodereview.ui
 
+import com.intellij.icons.AllIcons
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.progress.ProgressManager
@@ -55,7 +56,7 @@ class ReviewPanel(private val project: Project) : JPanel() {
         gbc.insets = Insets(5, 5, 5, 5)
         add(updateBranchesButton, gbc)
 
-        updateBranchesButton.icon = com.intellij.icons.AllIcons.Actions.Refresh
+        updateBranchesButton.icon = AllIcons.Actions.Refresh
         updateBranchesButton.text = ""
 
         // --- Row 0: Create Pull Request Button ---
@@ -66,8 +67,6 @@ class ReviewPanel(private val project: Project) : JPanel() {
         gbc.fill = GridBagConstraints.HORIZONTAL
         gbc.insets = Insets(5, 5, 5, 5)
         add(createPullRequestButton, gbc)
-        // TODO: Enable after PR is implemented
-        createPullRequestButton.isEnabled = false
 
 
 
@@ -189,7 +188,10 @@ class ReviewPanel(private val project: Project) : JPanel() {
             override fun run(indicator: ProgressIndicator) {
                 val pullRequest = bitbucketService.createPullRequest(
                     sourceBranch = currentBranch,
-                    targetBranch = targetBranch
+                    targetBranch = targetBranch,
+                    project = project,
+                    title = "Pull request from $currentBranch to $targetBranch",
+                    description = diffEditorPane.text
                 )
                 ApplicationManager.getApplication().invokeLater {
                     if (pullRequest != null) {

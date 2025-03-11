@@ -12,10 +12,10 @@ import com.intellij.util.xmlb.XmlSerializerUtil
 )
 class AppSettingsState : PersistentStateComponent<AppSettingsState> {
 
-    enum class ModelProvider {
-        OLLAMA,
-        GEMINI,
-        TOGETHER_AI // Add the new provider
+    enum class ModelProvider(val code: String) {
+        OLLAMA("Ollama"),
+        GEMINI("Gemini"),
+        TOGETHER_AI("Together AI") // Add the new provider
     }
     var modelProvider: ModelProvider = ModelProvider.OLLAMA // Default to Ollama
     var ollamaUrl: String = "http://localhost:11434/api/generate"
@@ -46,7 +46,7 @@ class AppSettingsState : PersistentStateComponent<AppSettingsState> {
     var bitbucketWorkspace: String = ""
     var bitbucketRepo: String = ""
     var bitbucketCertificatePath: String = ""
-    var bitbucketDisableCertVerification: Boolean = true // Added option to disable cert verification
+    var keystorePassword: String = ""
 
     override fun getState(): AppSettingsState {
         return this

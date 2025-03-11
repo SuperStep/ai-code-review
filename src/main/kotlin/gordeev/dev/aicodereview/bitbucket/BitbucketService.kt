@@ -1,28 +1,34 @@
 package gordeev.dev.aicodereview.bitbucket
 
 import com.google.gson.Gson
+import com.intellij.notification.NotificationType
+import com.intellij.openapi.project.Project
+import gordeev.dev.aicodereview.NotificationUtil
 import gordeev.dev.aicodereview.settings.AppSettingsState
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import okhttp3.RequestBody.Companion.toRequestBody
 import java.io.File
 import java.io.FileInputStream
-import java.net.URI
-import java.net.http.HttpClient
-import java.net.http.HttpRequest
-import java.net.http.HttpResponse
+import java.io.IOException
 import java.security.KeyStore
 import java.security.cert.CertificateFactory
 import java.security.cert.X509Certificate
+import javax.net.ssl.KeyManagerFactory
 import javax.net.ssl.SSLContext
-import javax.net.ssl.TrustManager
-import javax.net.ssl.TrustManagerFactory
 import javax.net.ssl.X509TrustManager
+import javax.net.ssl.TrustManager
 
 class BitbucketService {
     private val settings = AppSettingsState.instance
     private val gson = Gson()
+    private val mediaTypeJson = "application/json".toMediaType()
 
     /**
      * Creates a pull request in Bitbucket
      *
+     * @param project The IntelliJ project
      * @param sourceBranch The source branch name
      * @param targetBranch The target branch name
      * @param title The title for the pull request (optional)
@@ -30,6 +36,7 @@ class BitbucketService {
      * @return The created pull request data or null if creation failed
      */
     fun createPullRequest(
+        project: Project,
         sourceBranch: String,
         targetBranch: String,
         title: String = "Pull request from $sourceBranch to $targetBranch",
@@ -38,127 +45,114 @@ class BitbucketService {
 
         val baseUrl = "${settings.bitbucketHostname}/rest/api/1.0/projects/${settings.bitbucketWorkspace}/repos/${settings.bitbucketRepo}/pull-requests"
 
-        val requestBody = gson.toJson(mapOf(
-            "title" to title,
-            "description" to description,
-            "state" to "OPEN",
-            "open" to true,
-            "closed" to false,
-            "fromRef" to mapOf(
-                "id" to "refs/heads/$sourceBranch",
-                "repository" to mapOf(
-                    "slug" to settings.bitbucketRepo,
-                    "project" to mapOf(
-                        "key" to settings.bitbucketWorkspace
+        val requestBody = gson.toJson(
+            mapOf(
+                "title" to title,
+                "description" to description,
+                "state" to "OPEN",
+                "open" to true,
+                "closed" to false,
+                "fromRef" to mapOf(
+                    "id" to "refs/heads/$sourceBranch",
+                    "repository" to mapOf(
+                        "slug" to settings.bitbucketRepo,
+                        "project" to mapOf(
+                            "key" to settings.bitbucketWorkspace
+                        )
                     )
-                )
-            ),
-            "toRef" to mapOf(
-                "id" to "refs/heads/$targetBranch",
-                "repository" to mapOf(
-                    "slug" to settings.bitbucketRepo,
-                    "project" to mapOf(
-                        "key" to settings.bitbucketWorkspace
+                ),
+                "toRef" to mapOf(
+                    "id" to "refs/heads/$targetBranch",
+                    "repository" to mapOf(
+                        "slug" to settings.bitbucketRepo,
+                        "project" to mapOf(
+                            "key" to settings.bitbucketWorkspace
+                        )
                     )
                 )
             )
-        ))
+        )
 
         // Create HTTP client with SSL context based on settings
-        val client = createHttpClient()
+        try {
+            val client = createOkHttpClient()
 
-        val request = HttpRequest.newBuilder()
-            .uri(URI.create(baseUrl))
-            .header("Content-Type", "application/json")
-            .header("Authorization", "Bearer ${settings.bitbucketToken}")
-            .POST(HttpRequest.BodyPublishers.ofString(requestBody))
-            .build()
+            val request = Request.Builder()
+                .url(baseUrl)
+                .header("Content-Type", "application/json")
+                .header("Authorization", "Bearer ${settings.bitbucketToken}")
+                .post(requestBody.toRequestBody(mediaTypeJson))
+                .build()
 
-        return try {
-            val response = client.send(request, HttpResponse.BodyHandlers.ofString())
-            if (response.statusCode() in 200..299) {
-                gson.fromJson(response.body(), PullRequestResponse::class.java)
-            } else {
-                println("Error creating pull request: ${response.statusCode()} - ${response.body()}")
-                null
+            return client.newCall(request).execute().use { response ->
+                if (response.isSuccessful) {
+                    response.body?.string()?.let {
+                        val prResponse = gson.fromJson(it, PullRequestResponse::class.java)
+                        NotificationUtil.showNotificationWithUrl(
+                            project = project,
+                            message = "Pull request #${prResponse.id} created successfully",
+                            title = "Pull Request Created",
+                            linkText =  prResponse.getWebUrl()?: "",
+                            url = prResponse.getWebUrl()?: ""
+                        )
+                        prResponse
+                    }
+                } else {
+                    val errorBody = response.body?.string() ?: "Unknown error"
+                    NotificationUtil.showErrorNotification(
+                        project,
+                        "Error creating pull request: ${response.code} - $errorBody"
+                    )
+                    null
+                }
             }
-        } catch (e: Exception) {
-            println("Exception creating pull request: ${e.message}")
+        } catch (e: IOException) {
+            NotificationUtil.showErrorNotification(
+                project,
+                "Failed to create pull request: ${e.message}"
+            )
             e.printStackTrace()
-            null
+            return null
+        } catch (e: Exception) {
+            NotificationUtil.showErrorNotification(
+                project,
+                "Unexpected error creating pull request: ${e.message}"
+            )
+            e.printStackTrace()
+            return null
         }
     }
 
     /**
-     * Creates an HTTP client with custom SSL context based on settings
+     * Creates an OkHttp client with custom SSL context based on settings
      */
-    private fun createHttpClient(): HttpClient {
-        // If verification should be disabled, create a trust-all SSL context
-        if (settings.bitbucketDisableCertVerification) {
-            try {
-                // Create a trust manager that does not validate certificate chains
-                val trustAllCerts = arrayOf<TrustManager>(object : X509TrustManager {
-                    override fun checkClientTrusted(chain: Array<X509Certificate>, authType: String) {}
-                    override fun checkServerTrusted(chain: Array<X509Certificate>, authType: String) {}
-                    override fun getAcceptedIssuers(): Array<X509Certificate> = emptyArray()
-                })
-                // Install the all-trusting trust manager
-                val sslContext = SSLContext.getInstance("TLS")
-                sslContext.init(null, trustAllCerts, java.security.SecureRandom())
+    private fun createOkHttpClient(): OkHttpClient {
+        try {
+            val keyStoreFile = File(settings.bitbucketCertificatePath)
+            val keyStore = KeyStore.getInstance("PKCS12")
+            keyStore.load(FileInputStream(keyStoreFile), settings.keystorePassword.toCharArray())
 
-                // Create an HttpClient that trusts all certificates
-                return HttpClient.newBuilder()
-                    .sslContext(sslContext)
-                    .build()
-            } catch (e: Exception) {
-                println("Error creating trust-all SSL context: ${e.message}")
-                e.printStackTrace()
-                return HttpClient.newHttpClient()
-            }
+            val keyManagerFactory = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm())
+            keyManagerFactory.init(keyStore, settings.keystorePassword.toCharArray())
+
+            val sslContext = SSLContext.getInstance("TLS")
+            sslContext.init(keyManagerFactory.keyManagers, null, null)
+
+            return OkHttpClient.Builder()
+                .sslSocketFactory(sslContext.socketFactory, getTrustManager())
+                .build()
+        } catch (e: Exception) {
+            // We can't show notifications here since we don't have a Project reference
+            // The exception will be caught in the calling method
+            throw IOException("Failed to create HTTP client: ${e.message}", e)
         }
-        // If a custom certificate path is provided, use it
-        else if (settings.bitbucketCertificatePath.isNotBlank()) {
-            try {
-                val certificateFile = File(settings.bitbucketCertificatePath)
-                if (certificateFile.exists()) {
-                    // Create a KeyStore containing our trusted CAs
-                    val keyStore = KeyStore.getInstance(KeyStore.getDefaultType())
-                    keyStore.load(null, null)
+    }
 
-                    // Load the certificate
-                    val certificateFactory = CertificateFactory.getInstance("X.509")
-                    val certificate = FileInputStream(certificateFile).use { fis ->
-                        certificateFactory.generateCertificate(fis) as X509Certificate
-                    }
-
-                    // Add certificate to keystore
-                    keyStore.setCertificateEntry("bitbucket-cert", certificate)
-
-                    // Create a TrustManager that trusts the CAs in our KeyStore
-                    val tmf = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm())
-                    tmf.init(keyStore)
-
-                    // Create an SSLContext that uses our TrustManager
-                    val sslContext = SSLContext.getInstance("TLS")
-                    sslContext.init(null, tmf.trustManagers, null)
-
-                    // Create HttpClient with our SSLContext
-                    return HttpClient.newBuilder()
-                        .sslContext(sslContext)
-                        .build()
-                } else {
-                    println("Certificate file not found: ${settings.bitbucketCertificatePath}")
-                    return HttpClient.newHttpClient()
-                }
-            } catch (e: Exception) {
-                println("Error setting up SSL context with certificate: ${e.message}")
-                e.printStackTrace()
-                return HttpClient.newHttpClient()
-            }
-        }
-        // Otherwise, use the default HTTP client
-        else {
-            return HttpClient.newHttpClient()
+    private fun getTrustManager(): X509TrustManager {
+        return object : X509TrustManager {
+            override fun checkClientTrusted(chain: Array<X509Certificate>, authType: String) {}
+            override fun checkServerTrusted(chain: Array<X509Certificate>, authType: String) {}
+            override fun getAcceptedIssuers(): Array<X509Certificate> = arrayOf()
         }
     }
 

@@ -39,6 +39,7 @@ class AppSettingsConfigurable : Configurable {
     // Common fields
     private lateinit var includeRepositoryContextCheckbox: JBCheckBox
     private lateinit var userMessageTextArea: JBTextArea
+    private lateinit var modelProviderComboBox: ComboBox<AppSettingsState.ModelProvider> // Added ComboBox
 
     // Bitbucket fields
     private lateinit var bitbucketHostnameField: JBTextField
@@ -46,6 +47,7 @@ class AppSettingsConfigurable : Configurable {
     private lateinit var bitbucketWorkspaceField: JBTextField
     private lateinit var bitbucketRepoField: JBTextField
     private lateinit var bitbucketCertificatePathField: TextFieldWithBrowseButton
+    private lateinit var bitbucketKeystorePasswordField: JPasswordField
 
     private var mainTabbedPane: JBTabbedPane? = null
     private var aiModelTabbedPane: JBTabbedPane? = null
@@ -85,13 +87,6 @@ class AppSettingsConfigurable : Configurable {
         aiModelTabbedPane!!.addTab("Gemini", geminiPanel)
         aiModelTabbedPane!!.addTab("TogetherAI", togetherAiPanel)
 
-        // Select the correct tab based on current settings
-        when (settings.modelProvider) {
-            AppSettingsState.ModelProvider.OLLAMA -> aiModelTabbedPane!!.selectedIndex = 1
-            AppSettingsState.ModelProvider.GEMINI -> aiModelTabbedPane!!.selectedIndex = 2
-            AppSettingsState.ModelProvider.TOGETHER_AI -> aiModelTabbedPane!!.selectedIndex = 3
-        }
-
         // Assemble the main AI model panel
         val panel = JPanel(BorderLayout())
         panel.add(aiModelTabbedPane!!, BorderLayout.CENTER)
@@ -103,8 +98,12 @@ class AppSettingsConfigurable : Configurable {
         // Initialize common fields
         includeRepositoryContextCheckbox = JBCheckBox("Include repository context", settings.includeRepositoryContext)
         userMessageTextArea = JBTextArea(settings.userMessage, 5, 30)
+        modelProviderComboBox = ComboBox(AppSettingsState.ModelProvider.entries.toTypedArray()) // Initialize ComboBox
+        modelProviderComboBox.selectedItem = settings.modelProvider // Set initial selection
+
 
         return FormBuilder.createFormBuilder()
+            .addLabeledComponent(JBLabel("AI Model Provider: "), modelProviderComboBox) // Add to FormBuilder
             .addComponent(includeRepositoryContextCheckbox)
             .addLabeledComponent(JBLabel("User Message: "), JScrollPane(userMessageTextArea), 1, false)
             .addComponentFillVertically(JPanel(), 0)
@@ -156,6 +155,7 @@ class AppSettingsConfigurable : Configurable {
         bitbucketTokenField = JBTextField(settings.bitbucketToken)
         bitbucketWorkspaceField = JBTextField(settings.bitbucketWorkspace)
         bitbucketRepoField = JBTextField(settings.bitbucketRepo)
+        bitbucketKeystorePasswordField = JPasswordField(settings.keystorePassword)
 
         // Add certificate path field with file browser
         bitbucketCertificatePathField = TextFieldWithBrowseButton()
@@ -172,6 +172,7 @@ class AppSettingsConfigurable : Configurable {
             .addLabeledComponent(JBLabel("Bitbucket Workspace: "), bitbucketWorkspaceField, 1, false)
             .addLabeledComponent(JBLabel("Bitbucket Repository: "), bitbucketRepoField, 1, false)
             .addLabeledComponent(JBLabel("Certificate Path: "), bitbucketCertificatePathField, 1, false)
+            .addLabeledComponent(JBLabel("Keystore Password: "), bitbucketKeystorePasswordField, 1, false)
             .addComponentFillVertically(JPanel(), 0)
             .panel
     }
@@ -181,24 +182,24 @@ class AppSettingsConfigurable : Configurable {
                 (ollamaModelComboBox.selectedItem as? String ?: "") != settings.ollamaModel ||
                 geminiTokenField.text != settings.geminiToken ||
                 togetherApiKeyField.text != settings.togetherApiKey ||
-                togetherAiModelField.text != settings.togetherAiModel || // Check the new field
-                getSelectedProvider() != settings.modelProvider ||
+                togetherAiModelField.text != settings.togetherAiModel ||
+                modelProviderComboBox.selectedItem != settings.modelProvider ||
                 includeRepositoryContextCheckbox.isSelected != settings.includeRepositoryContext ||
                 userMessageTextArea.text != settings.userMessage ||
                 bitbucketHostnameField.text != settings.bitbucketHostname ||
                 bitbucketTokenField.text != settings.bitbucketToken ||
                 bitbucketWorkspaceField.text != settings.bitbucketWorkspace ||
                 bitbucketRepoField.text != settings.bitbucketRepo ||
-                bitbucketCertificatePathField.text != settings.bitbucketCertificatePath
+                bitbucketCertificatePathField.text != settings.bitbucketCertificatePath ||
+                String(bitbucketKeystorePasswordField.password) != settings.keystorePassword
     }
-
     override fun apply() {
         settings.ollamaUrl = ollamaUrlField.text
         settings.ollamaModel = ollamaModelComboBox.selectedItem as? String ?: ""
         settings.geminiToken = geminiTokenField.text
         settings.togetherApiKey = togetherApiKeyField.text
-        settings.togetherAiModel = togetherAiModelField.text // Save the new field
-        settings.modelProvider = getSelectedProvider()
+        settings.togetherAiModel = togetherAiModelField.text
+        settings.modelProvider = modelProviderComboBox.selectedItem as AppSettingsState.ModelProvider
         settings.includeRepositoryContext = includeRepositoryContextCheckbox.isSelected
         settings.userMessage = userMessageTextArea.text
 
@@ -208,15 +209,12 @@ class AppSettingsConfigurable : Configurable {
         settings.bitbucketWorkspace = bitbucketWorkspaceField.text
         settings.bitbucketRepo = bitbucketRepoField.text
         settings.bitbucketCertificatePath = bitbucketCertificatePathField.text
+        settings.keystorePassword = String(bitbucketKeystorePasswordField.password)
     }
 
     override fun reset() {
-        // Reset AI provider selection by selecting the appropriate tab
-        when (settings.modelProvider) {
-            AppSettingsState.ModelProvider.OLLAMA -> aiModelTabbedPane?.selectedIndex = 1
-            AppSettingsState.ModelProvider.GEMINI -> aiModelTabbedPane?.selectedIndex = 2
-            AppSettingsState.ModelProvider.TOGETHER_AI -> aiModelTabbedPane?.selectedIndex = 3
-        }
+        // Reset AI provider selection
+        modelProviderComboBox.selectedItem = settings.modelProvider
 
         // Reset Ollama fields
         ollamaUrlField.text = settings.ollamaUrl
@@ -229,7 +227,7 @@ class AppSettingsConfigurable : Configurable {
         // Reset other provider fields
         geminiTokenField.text = settings.geminiToken
         togetherApiKeyField.text = settings.togetherApiKey
-        togetherAiModelField.text = settings.togetherAiModel // Reset the new field
+        togetherAiModelField.text = settings.togetherAiModel
 
         // Reset common fields
         includeRepositoryContextCheckbox.isSelected = settings.includeRepositoryContext
@@ -241,21 +239,16 @@ class AppSettingsConfigurable : Configurable {
         bitbucketWorkspaceField.text = settings.bitbucketWorkspace
         bitbucketRepoField.text = settings.bitbucketRepo
         bitbucketCertificatePathField.text = settings.bitbucketCertificatePath
+        bitbucketKeystorePasswordField.text = settings.keystorePassword
     }
 
     override fun disposeUIResources() {
         myMainPanel = null
         mainTabbedPane = null
-        aiModelTabbedPane = null
     }
 
     private fun getSelectedProvider(): AppSettingsState.ModelProvider {
-        return when (aiModelTabbedPane?.selectedIndex) {
-            1 -> AppSettingsState.ModelProvider.OLLAMA
-            2 -> AppSettingsState.ModelProvider.GEMINI
-            3 -> AppSettingsState.ModelProvider.TOGETHER_AI
-            else -> AppSettingsState.ModelProvider.OLLAMA // Default
-        }
+        return modelProviderComboBox.selectedItem as AppSettingsState.ModelProvider
     }
 
     private fun fetchOllamaModels() {
@@ -293,3 +286,4 @@ class AppSettingsConfigurable : Configurable {
     data class ModelList(val models: List<Model>)
     data class Model(val name: String, val modified_at: String, val size: Long)
 }
+

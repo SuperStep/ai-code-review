@@ -11,4 +11,28 @@ object NotificationUtil {
             .createNotification(message, NotificationType.ERROR)
             .notify(project)
     }
+
+    fun showSuccessNotification(project: Project, message: String) {
+        NotificationGroupManager.getInstance()
+            .getNotificationGroup("AI Code Review Errors") // Reusing the same group
+            .createNotification(message, NotificationType.INFORMATION)
+            .notify(project)
+    }
+
+    fun showNotificationWithUrl(
+        project: Project,
+        title: String,
+        message: String,
+        linkText: String,
+        url: String,
+        notificationType: NotificationType = NotificationType.INFORMATION
+    ) {
+        val htmlContent = "$message <a href=\"$url\">$linkText</a>"
+
+        NotificationGroupManager.getInstance()
+            .getNotificationGroup("AI Code Review Errors")
+            .createNotification(title, htmlContent, notificationType)
+            .setImportant(true)
+            .notify(project)
+    }
 }

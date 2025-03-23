@@ -17,13 +17,26 @@ class GeminiReviewProvider : AiReviewProvider {
             return null
         }
 
+        var contextString = ""
+        if (settings.dbHost?.isNotBlank() == true){
+            var contextProvider = PostgresDatabaseProvider()
+            var context = contextProvider.getContext(diff)
+
+            contextString = buildString {
+                append("Here is context with relevant existing code:\n\n")
+                context.forEach {
+                    append(it).append("\n")
+                }
+            }
+        }
+
         val client = HttpClient.newHttpClient()
         val requestBody = Gson().toJson(
             mapOf(
                 "contents" to listOf(
                     mapOf(
                         "parts" to listOf(
-                            mapOf("text" to "Review the following code diff:\n\n$diff\n\n\n${settings.userMessage}")
+                            mapOf("text" to "#######${settings.userMessage}\n\n$diff\n\n#######\n\n${contextString}")
                         )
                     )
                 )

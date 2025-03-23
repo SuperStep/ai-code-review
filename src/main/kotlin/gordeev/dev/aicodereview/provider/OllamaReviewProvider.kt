@@ -17,13 +17,25 @@ class OllamaReviewProvider : AiReviewProvider {
             return null
         }
 
+        var contextString = ""
+        if (settings.dbHost?.isNotBlank() == true){
+            var contextProvider = PostgresDatabaseProvider()
+            var context = contextProvider.getContext(diff)
+
+            contextString = buildString {
+                append("Here is context with relevant existing code:\n\n")
+                context.forEach {
+                    append(it).append("\n")
+                }
+            }
+        }
+
         val client = HttpClient.newHttpClient()
         val requestBody = Gson().toJson(
             mapOf(
-                "prompt" to "${settings.userMessage}\n\n\n$diff\n",
+                "prompt" to "#######${settings.userMessage}\n\n$diff\n\n#######\n\n${contextString}",
                 "model" to settings.ollamaModel,
-                "stream" to false,
-                "format" to "json"
+                "stream" to false
             )
         )
 

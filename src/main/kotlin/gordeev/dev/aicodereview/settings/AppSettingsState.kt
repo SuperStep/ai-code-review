@@ -6,22 +6,25 @@ import com.intellij.openapi.components.State
 import com.intellij.openapi.components.Storage
 import com.intellij.util.xmlb.XmlSerializerUtil
 
+/**
+ * Persistent application settings state
+ */
 @State(
     name = "gordeev.dev.aicodereview.settings.AppSettingsState",
-    storages = [Storage("AiCodeReviewSettings.xml")]
+    storages = [Storage("AICodeReviewSettings.xml")]
 )
 class AppSettingsState : PersistentStateComponent<AppSettingsState> {
 
     enum class ModelProvider(val code: String) {
         OLLAMA("Ollama"),
         GEMINI("Gemini"),
-        TOGETHER_AI("Together AI") // Add the new provider
+        TOGETHER_AI("Together AI")
     }
-    var modelProvider: ModelProvider = ModelProvider.OLLAMA // Default to Ollama
+    var modelProvider: ModelProvider = ModelProvider.OLLAMA
     var ollamaUrl: String = "http://localhost:11434/api/generate"
     var ollamaModel: String = ""
     var geminiToken: String = ""
-    var togetherApiKey: String = "" // Add the TogetherAI API key field
+    var togetherApiKey: String = ""
     var togetherAiModel: String = "meta-llama/Llama-Vision-Free"
     var includeRepositoryContext: Boolean = false
     var userMessage: String = """
@@ -37,7 +40,7 @@ class AppSettingsState : PersistentStateComponent<AppSettingsState> {
     or if the code generally follows sound design principles. 
     If no issues found, reply "There are no errors."    
         
-    Here are the code for you review:
+    Here is a git diff of the changes:
     """.trimIndent()
 
     // Bitbucket settings
@@ -48,9 +51,16 @@ class AppSettingsState : PersistentStateComponent<AppSettingsState> {
     var bitbucketCertificatePath: String = ""
     var keystorePassword: String = ""
 
-    override fun getState(): AppSettingsState {
-        return this
-    }
+    // RAG Database settings
+    var dbHost: String? = null
+    var dbPort: Int? = null
+    var dbName: String? = null
+    var dbUsername: String? = null
+    var dbPassword: String? = null
+    var ragRequestStatement: String? = "SELECT path, chunk FROM find_rag_content(?)"
+
+
+    override fun getState(): AppSettingsState = this
 
     override fun loadState(state: AppSettingsState) {
         XmlSerializerUtil.copyBean(state, this)

@@ -18,7 +18,10 @@ import java.net.http.HttpRequest
 import java.net.http.HttpResponse
 import javax.swing.*
 import com.intellij.ui.components.JBTabbedPane
+import gordeev.dev.aicodereview.provider.DatabaseConnectionConfig
 import java.awt.BorderLayout
+import java.sql.DriverManager
+import java.util.Properties
 
 class AppSettingsConfigurable : Configurable {
 
@@ -49,6 +52,14 @@ class AppSettingsConfigurable : Configurable {
     private lateinit var bitbucketCertificatePathField: TextFieldWithBrowseButton
     private lateinit var bitbucketKeystorePasswordField: JPasswordField
 
+    private lateinit var dbHostField: JBTextField
+    private lateinit var dbPortField: JBTextField
+    private lateinit var dbNameField: JBTextField
+    private lateinit var dbUsernameField: JBTextField
+    private lateinit var dbPasswordField: JPasswordField
+    private lateinit var ragRequestStatementField: JBTextArea
+    private lateinit var dbTestConnectionButton: JButton
+
     private var mainTabbedPane: JBTabbedPane? = null
     private var aiModelTabbedPane: JBTabbedPane? = null
     private var myMainPanel: JPanel? = null
@@ -61,9 +72,11 @@ class AppSettingsConfigurable : Configurable {
         // Create main tabs
         val aiModelPanel = createAiModelPanel()
         val bitbucketPanel = createBitbucketPanel()
+        val databasePanel = createDatabasePanel() // Add this line
 
         mainTabbedPane!!.addTab("AI Model", aiModelPanel)
         mainTabbedPane!!.addTab("Bitbucket", bitbucketPanel)
+        mainTabbedPane!!.addTab("Database", databasePanel) // Add this line
 
         myMainPanel = JPanel(BorderLayout())
         myMainPanel!!.add(mainTabbedPane!!, BorderLayout.CENTER)
@@ -177,6 +190,67 @@ class AppSettingsConfigurable : Configurable {
             .panel
     }
 
+    // Add this method to create the database panel
+    private fun createDatabasePanel(): JPanel {
+        dbHostField = JBTextField(settings.dbHost ?: "")
+        dbPortField = JBTextField(settings.dbPort?.toString() ?: "5432")
+        dbNameField = JBTextField(settings.dbName ?: "")
+        dbUsernameField = JBTextField(settings.dbUsername ?: "")
+        dbPasswordField = JPasswordField(settings.dbPassword ?: "")
+        dbTestConnectionButton = JButton("Test Connection")
+
+        // Add the RAG request statement field
+        ragRequestStatementField = JBTextArea(settings.ragRequestStatement ?: "SELECT path, chunk FROM find_rag_content(?)", 3, 30)
+
+        dbTestConnectionButton.addActionListener { testDatabaseConnection() }
+
+        return FormBuilder.createFormBuilder()
+            .addLabeledComponent(JBLabel("Database Host:"), dbHostField, 1, false)
+            .addLabeledComponent(JBLabel("Database Port:"), dbPortField, 1, false)
+            .addLabeledComponent(JBLabel("Database Name:"), dbNameField, 1, false)
+            .addLabeledComponent(JBLabel("Username:"), dbUsernameField, 1, false)
+            .addLabeledComponent(JBLabel("Password:"), dbPasswordField, 1, false)
+            .addLabeledComponent(JBLabel("RAG SQL Query:"), JScrollPane(ragRequestStatementField), 1, false)
+            .addComponent(dbTestConnectionButton)
+            .addComponentFillVertically(JPanel(), 0)
+            .panel
+    }
+    // Add this method to test the database connection
+    private fun testDatabaseConnection() {
+        try {
+            val config = DatabaseConnectionConfig(
+                host = dbHostField.text,
+                port = dbPortField.text.toIntOrNull() ?: 5432,
+                database = dbNameField.text,
+                username = dbUsernameField.text,
+                password = String(dbPasswordField.password)
+            )
+
+            // Test the connection
+            Class.forName("org.postgresql.Driver")
+            val props = Properties()
+            props.setProperty("user", config.username)
+            props.setProperty("password", config.password)
+
+            val connection = DriverManager.getConnection(config.jdbcUrl, props)
+            connection.close()
+
+            JOptionPane.showMessageDialog(
+                myMainPanel,
+                "Connection successful!",
+                "Database Connection",
+                JOptionPane.INFORMATION_MESSAGE
+            )
+        } catch (e: Exception) {
+            JOptionPane.showMessageDialog(
+                myMainPanel,
+                "Connection failed: ${e.message}",
+                "Database Connection Error",
+                JOptionPane.ERROR_MESSAGE
+            )
+        }
+    }
+
     override fun isModified(): Boolean {
         return ollamaUrlField.text != settings.ollamaUrl ||
                 (ollamaModelComboBox.selectedItem as? String ?: "") != settings.ollamaModel ||
@@ -191,8 +265,15 @@ class AppSettingsConfigurable : Configurable {
                 bitbucketWorkspaceField.text != settings.bitbucketWorkspace ||
                 bitbucketRepoField.text != settings.bitbucketRepo ||
                 bitbucketCertificatePathField.text != settings.bitbucketCertificatePath ||
-                String(bitbucketKeystorePasswordField.password) != settings.keystorePassword
+                String(bitbucketKeystorePasswordField.password) != settings.keystorePassword ||
+                dbHostField.text != (settings.dbHost ?: "") ||
+                dbPortField.text != (settings.dbPort?.toString() ?: "5432") ||
+                dbNameField.text != (settings.dbName ?: "") ||
+                dbUsernameField.text != (settings.dbUsername ?: "") ||
+                String(dbPasswordField.password) != (settings.dbPassword ?: "") ||
+                ragRequestStatementField.text != (settings.ragRequestStatement ?: "SELECT path, chunk FROM find_rag_content(?)")
     }
+
     override fun apply() {
         settings.ollamaUrl = ollamaUrlField.text
         settings.ollamaModel = ollamaModelComboBox.selectedItem as? String ?: ""
@@ -210,6 +291,14 @@ class AppSettingsConfigurable : Configurable {
         settings.bitbucketRepo = bitbucketRepoField.text
         settings.bitbucketCertificatePath = bitbucketCertificatePathField.text
         settings.keystorePassword = String(bitbucketKeystorePasswordField.password)
+
+        // Save database settings
+        settings.dbHost = dbHostField.text.ifBlank { null }
+        settings.dbPort = dbPortField.text.toIntOrNull()
+        settings.dbName = dbNameField.text.ifBlank { null }
+        settings.dbUsername = dbUsernameField.text.ifBlank { null }
+        settings.dbPassword = String(dbPasswordField.password).ifBlank { null }
+        settings.ragRequestStatement = ragRequestStatementField.text.ifBlank { null }
     }
 
     override fun reset() {
@@ -240,6 +329,14 @@ class AppSettingsConfigurable : Configurable {
         bitbucketRepoField.text = settings.bitbucketRepo
         bitbucketCertificatePathField.text = settings.bitbucketCertificatePath
         bitbucketKeystorePasswordField.text = settings.keystorePassword
+
+        // Reset database fields
+        dbHostField.text = settings.dbHost ?: ""
+        dbPortField.text = settings.dbPort?.toString() ?: "5432"
+        dbNameField.text = settings.dbName ?: ""
+        dbUsernameField.text = settings.dbUsername ?: ""
+        dbPasswordField.text = settings.dbPassword ?: ""
+        ragRequestStatementField.text = settings.ragRequestStatement ?: "SELECT path, chunk FROM find_rag_content(?)"
     }
 
     override fun disposeUIResources() {

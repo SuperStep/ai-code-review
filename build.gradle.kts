@@ -33,6 +33,7 @@ dependencies {
     implementation("org.jetbrains.kotlin:kotlin-stdlib")
     implementation("org.commonmark:commonmark:0.21.0")
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
+    implementation("org.postgresql:postgresql:42.6.0")
 }
 
 
